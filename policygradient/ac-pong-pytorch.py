@@ -29,11 +29,11 @@ parser.add_argument('--seed', type=int, default=87, metavar='N',
                     help='random seed (default: 87)')
 parser.add_argument('--test', action='store_true',
         help='whether to test the trained model or keep training')
-
+parser.add_argument('--env', type=str, default="Pong-v0")
 args = parser.parse_args()
 
-
-env = gym.make('Pong-v0')
+assert "Pong" in args.env
+env = gym.make(args.env)
 env.seed(args.seed)
 torch.manual_seed(args.seed)
 
@@ -100,7 +100,6 @@ if os.path.isfile('ac_params.pkl'):
 optimizer = optim.RMSprop(policy.parameters(), lr=args.learning_rate, weight_decay=args.decay_rate)
 
 def finish_episode():
-    R = 0
     policy_loss = []
     value_loss = []
     rewards = []
@@ -130,6 +129,10 @@ def finish_episode():
         loss.cuda()
     loss.backward()
     optimizer.step()
+
+    print("Total loss {}, policy loss {}, value loss {}.".format(
+        loss.item(), policy_loss.item(), value_loss.item()
+    ))
 
     # clean rewards and saved_actions
     del policy.rewards[:]
