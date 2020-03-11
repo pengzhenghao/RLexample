@@ -110,12 +110,17 @@ def finish_episode():
                 R = torch.scalar_tensor(r)
             else:
                 R = r + args.gamma * policy.saved_log_probs[episode_id][i + 1][1]
+            R = R.reshape(-1)
+            R.detach()
             rewards.append(R)
-    if is_cuda: rewards = rewards.cuda()
-    flatten_log_probs = [sample for episode in policy.saved_log_probs for sample in episode]
-    assert len(flatten_log_probs) == len(rewards)
-    for (log_prob, value), reward in zip(flatten_log_probs, rewards):
+    if is_cuda:
+        rewards = [r.cuda() for r in rewards]
+    rewards = torch.cat(rewards)
+    flatten_log_probs = [sample[0] for episode in policy.saved_log_probs for sample in episode]
+    flatten_values = [sample[1] for episode in policy.saved_log_probs for sample in episode]
+    for log_prob, value, reward in zip(flatten_log_probs, flatten_values, rewards):
         advantage = reward - value # A(s,a) = r + gamma V(s_t+1) - V(s_t)
+        advantage.detach()
         policy_loss.append(- log_prob * advantage)         # policy gradient
         value_loss.append(F.smooth_l1_loss(value.reshape(-1), reward.reshape(-1))) # value function approximation
     optimizer.zero_grad()
