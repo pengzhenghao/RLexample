@@ -125,8 +125,6 @@ def finish_episode():
     policy_loss = torch.stack(policy_loss).sum()
     value_loss = torch.stack(value_loss).sum()
     loss = policy_loss + value_loss
-    if is_cuda:
-        loss.cuda()
     loss.backward()
     optimizer.step()
 
@@ -152,8 +150,9 @@ for i_episode in count(1):
         cur_x = prepro(state)
         x = cur_x - prev_x if prev_x is not None else np.zeros(D)
         prev_x = cur_x
-        action = policy.select_action(x)
-        action_env = action + 2
+        action = policy.select_action(x).item()
+        action_env = action + 2  # action 0, 1 mean noop, 2, 4 mean going up, 3, 5 mean going down
+        action_env = action_env
         state, reward, done, _ = env.step(action_env)
         reward_sum += reward
 
